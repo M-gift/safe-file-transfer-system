@@ -3,7 +3,7 @@ import threading, struct, json, os, pymysql,rsa
 
 
 #打开数据库连接
-db = pymysql.connect(host='127.0.0.1', port=3306, user='root', passwd='123456', db='fileTransfer',\
+db = pymysql.connect(host='127.0.0.1', port=3306, user='root', passwd='123456', db='filetransfer',\
                      charset='utf8')
 #使用cursor方法创建一个游标
 cursor = db.cursor()

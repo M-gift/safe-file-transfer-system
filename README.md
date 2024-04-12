@@ -14,6 +14,13 @@
 # 运行步骤
 
 * 第一步，在msql数据库中创建名为“filetransfer“的数据库，新建表user，含有三个字段：id、username、password。表里可以先添加一条用户信息用于稍后登录，例如（id=1,username=123,password=123）；
+表的创建语句如下：
+CREATE TABLE IF NOT EXISTS user (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL,
+    password VARCHAR(50) NOT NULL
+);
+
 
 * 第二步，解压源代码文件，修改server_ssl.py和server_no_ssl.py文件，将其中的mysql数据库名称和密码改成自己的；
 

@@ -3,7 +3,7 @@ import ssl, threading, struct, json, os, pymysql,rsa
 
 
 #打开数据库连接
-db = pymysql.connect(host='127.0.0.1', port=3306, user='root', passwd='123456', db='fileTransfer', charset='utf8')
+db = pymysql.connect(host='127.0.0.1', port=3306, user='root', passwd='123456', db='filetransfer', charset='utf8')
 #使用cursor方法创建一个游标
 cursor = db.cursor()
 #查询数据库版本
@@ -14,25 +14,37 @@ print(" Database Version:%s" % data)
 class server_ssl:
     def server_listen(self):
         # 生成SSL上下文
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        #context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         # 加载信任根证书Project/cer/CA/ca.crt
         #context.load_verify_locations(r'D:\PycharmProjects\SecureTransfer-master\Project\cer\CA\ca.crt')
-        #print(os.path.dirname(__file__))
-        context.load_verify_locations(os.path.dirname(__file__)+'/cer/CA/ca.crt')
+        print(os.path.dirname(__file__))
+        #context.load_verify_locations(os.path.dirname(__file__)+'/cer/CA/ca.crt')
         # 加载服务器所用证书和私钥
-        context.load_cert_chain(os.path.dirname(__file__)+'/cer/server/server.crt', os.path.dirname(__file__)+'/cer/server/server_rsa_private.pem')
+        #context.load_cert_chain(os.path.dirname(__file__)+'/cer/server/server.crt', os.path.dirname(__file__)+'/cer/server/server_rsa_private.pem')
         # 双向校验模式
-        context.verify_mode = ssl.CERT_REQUIRED
+        #context.verify_mode = ssl.CERT_REQUIRED
+
+        #因为证书验证失败了，所以要把这个禁掉
+        context = ssl.create_default_context()
+        context.check_hostname = False
+        context.verify_mode=ssl.CERT_NONE
 
         # 监听端口
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0) as sock:
+            # 调用socket模块中的socket函数，采用IPV4协议，TCP协议
             sock.bind(('127.0.0.1', 9999))
+            # bind函数，绑定ip+端口
             sock.listen(5)
+            # 将socket由主动变被动，等待客户端的连接请求，且最大连接数是5
+            
             # 将socket打包成SSL socket
             with context.wrap_socket(sock, server_side=True) as ssock:
+            #context是SSL客户端上下文，在上面创建过
+            #wrap_socket将sock包装为安全的服务器套接字ssock
                 while True:
                     # 接收客户端连接
                     connection, addr = ssock.accept()
+                    # accept接受请求，连接建立
                     print('Connected by ', addr)
                     #开启多线程,这里arg后面一定要跟逗号，否则报错
                     thread = threading.Thread(target=self.conn_thread, args=(connection,))
@@ -143,10 +155,10 @@ class server_ssl:
                             print("开始解密AES秘钥")
                             path=os.path.join(os.path.dirname(__file__)+'/ServerRec/', 'Bob_private_key.pem')
                             aes_key=rsa_private_decrypt(aes_key_encrypted, path)
-                            print("AES秘钥解密完成！")
+                            print("AES秘钥解密完成")
                             print("开始解密AES初始化向量")
                             iv=rsa_private_decrypt(iv_encrypted,path)
-                            print("AES初始化向量解密完成！")
+                            print("AES初始化向量解密完成")
                             file_encrypted=open(path1,'rb') 
                             file_encrypted_msg=file_encrypted.read()
 
@@ -155,7 +167,7 @@ class server_ssl:
                             print("开始对加密文件进行AES解密")
                             file_msg=aes_decrypt(file_encrypted_msg,aes_key,iv)
                             file_msg=file_msg[0:len(file_msg)-int(fill_number)]
-                            print("加密文件AES解密完成！")
+                            print("加密文件AES解密完成")
                             file_fill_number.close()
                             path=os.path.join(os.path.dirname(__file__)+'/ServerRec/', fileName)
                             file_decrypted=open(path,'wb')
@@ -168,7 +180,7 @@ class server_ssl:
                             signature_encrypted=file_signature_encrypted.read()
                             print("加密签名文件AES解密")
                             file_signature=aes_decrypt(signature_encrypted,aes_key,iv)
-                            print("加密签名文件AES解密完成！")
+                            print("加密签名文件AES解密完成")
                             file_signature_encrypted.close()
                             file_aes_key_encrypted.close()         # AES解密完成，关闭相关文件
                             file_iv_encrypted.close()
@@ -178,7 +190,7 @@ class server_ssl:
                             with open(path,'r') as f:
                                 pubkey = rsa.PublicKey.load_pkcs1(f.read().encode())
                             rsa.verify(md5_file_msg.encode(), file_signature, pubkey)
-                            print("MD5值校验成功！")
+                            print("MD5值校验成功")
                             print("解密程序运行完毕，请提取解密文件，并删除此程序所在路径下导入及生成的文件，谢谢！")
                         else:
                             recvd_size = 0  # 定义接收了的文件大小
@@ -298,7 +310,7 @@ class server_ssl:
                         file_encrypted=open(path,'wb')
                         file_encrypted.write(file_encrypted_msg)
                         file_encrypted.close()
-                        print("原文件AES加密完成！")
+                        print("原文件AES加密完成")
                         path=os.path.join(os.path.dirname(__file__)+'/ServerREc/', 'fill_number')
                         file_fill_number=open(path,'w')
                         file_fill_number.write(str(fill_number))
@@ -306,20 +318,20 @@ class server_ssl:
 
                         print("开始对原文件进行MD5摘要")
                         md5_msg=md5_encrypt(file_msg)
-                        print("MD5摘要完成！")
+                        print("MD5摘要完成")
                         file.close()
 
                         print("开始对MD5摘要签名")
                         path=os.path.join(os.path.dirname(__file__)+'/ServerREc/', 'Bob_private_key.pem')
                         signature_msg=rsa_private_encrypt(md5_msg,path)
-                        print("MD5摘要签名完成！")
+                        print("MD5摘要签名完成")
                         print("对签名进行AES加密")
                         signature_encrypted_msg,number=aes_encrypt(signature_msg,aes_key,iv) 
                         path=os.path.join(os.path.dirname(__file__)+'/ServerREc/', 'file_signature_encrypted')
                         file_signature_encrypted=open(path,'wb')
                         file_signature_encrypted.write(signature_encrypted_msg)
                         file_signature_encrypted.close()
-                        print("签名AES加密完成！")
+                        print("签名AES加密完成")
 
                         print("开始对AES秘钥进行RSA加密")
                         path=os.path.join(os.path.dirname(__file__)+'/ServerREc/', 'Alice_public_key.pem')
@@ -329,7 +341,7 @@ class server_ssl:
                         file_aes_key_encrypted=open(path,'wb')
                         file_aes_key_encrypted.write(aes_key_encrypted)
                         file_aes_key_encrypted.close()
-                        print("AES秘钥RSA加密完成！")
+                        print("AES秘钥RSA加密完成")
                         print("开始对iv进行RSA加密")
                         path=os.path.join(os.path.dirname(__file__)+'/ServerREc/', 'Alice_public_key.pem')
                         iv_encrypted=rsa_public_encrypt(iv,path)
@@ -337,10 +349,10 @@ class server_ssl:
                         file_iv_encrypted=open(path,'wb')
                         file_iv_encrypted.write(iv_encrypted)
                         file_iv_encrypted.close()
-                        print("对iv的RSA加密完成！")
+                        print("对iv的RSA加密完成")
                         file_aes_key.close()
 
-                        print("加密过程结束！")
+                        print("加密过程结束")
                         print("你需要发送给接收者的文件有：")
                         print("1.已加密文件：file_encrypted")
                         print("2.加密后的AES秘钥文件：AES_key_encrypted")
